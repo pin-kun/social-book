@@ -11,7 +11,7 @@ from django.contrib.auth.decorators import login_required
 from core.models import Profile
 
 # Home Page
-@login_required 
+@login_required(login_url='sign-in-page') # If user is not logged in then, user will be sent to login page
 def home(request):
     # If user is not logged in or not autheticated
     # if not request.user.is_authenticated:
@@ -82,7 +82,8 @@ def signin(request):
 
     return render(request, 'signin.html')
 
-def logout(request):
+@login_required(login_url='sign-in-page ')
+def logout_view(request):
     logout(request)
     print('logout user', request.user)
     return redirect('sign-in-page')
