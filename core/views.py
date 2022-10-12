@@ -15,7 +15,9 @@ from core.models import Post, Profile
 def home(request):
     user_obj = User.objects.get(username=request.user.username) # Currently logged in user_obj
     user_profile = Profile.objects.get(user=user_obj) # got the logged in user from profile using user_obj
-    return render(request, 'index.html', {'user_profile': user_profile})
+    user_post = Post.objects.filter(user=user_obj)
+    print('user post--->', user_post)
+    return render(request, 'index.html', {'user_profile': user_profile, 'user_post': user_post})
 
 # User profile settings page on site
 @login_required(login_url='sign-in-page')
@@ -138,7 +140,7 @@ def upload(request):
         new_post = Post.objects.create(user=user, image=image, caption=caption)
         new_post.save()
         print('pic uploaded')
-        return redirect("/")
+        return redirect("/", )
     else:
         print('pic not uploaded')
         return redirect("/")
