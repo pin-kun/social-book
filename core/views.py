@@ -8,7 +8,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 
-from core.models import Profile
+from core.models import Post, Profile
 
 # Home Page
 @login_required(login_url='sign-in-page') # If user is not logged in then, user will be sent to login page
@@ -127,4 +127,20 @@ def logout_view(request):
 
 @login_required(login_url="sign-in-page")
 def upload(request):
-    return HttpResponse('upload view')
+    # if image uploaded then post it else return directly to home page
+    if request.method == "POST":
+        # get the data
+        user = request.user.username # Current logged in user's username
+        image = request.FILES.get('image_upload')
+        caption = request.POST['caption']
+
+        # save it to the Post model (in database)
+        new_post = Post.objects.create(user=user, image=image, caption=caption)
+        new_post.save()
+        print('pic uploaded')
+        return redirect("/")
+    else:
+        print('pic not uploaded')
+        return redirect("/")
+
+

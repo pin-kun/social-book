@@ -50,7 +50,7 @@
                         <a href="#"
                             class="bg-pink-500 flex font-bold hidden hover:bg-pink-600 hover:text-white inline-block items-center lg:block max-h-10 mr-4 px-4 py-2 rounded shado text-white">
                             <ion-icon name="add-circle" class="-mb-1
-                             mr-1 opacity-90 text-xl uilus-circle"></ion-icon> Upload Pics / Videos
+                             mr-1 opacity-90 text-xl uilus-circle"></ion-icon> Upload Pics
                         </a>
                          <!-- upload dropdown box -->
                         <div uk-dropdown="pos: top-right;mode:click ; animation: uk-animation-slide-bottom-small" class="header_dropdown">
@@ -61,7 +61,6 @@
                             </div>
     
                             <!-- notification contents -->
-                            <form>
                             <div class="flex justify-center flex-center text-center">
                                 
     
@@ -73,19 +72,24 @@
                                             <path d="M9 13h2v5a1 1 0 11-2 0v-5z" />
                                         </svg>
                                     </div>
-
-                                    <p class="my-3 leading-6"> Upload pics
+                                    <form action="upload/" method="POST" enctype="multipart/form-data">
+                                        {% csrf_token %}
+                                    <p class="my-3 leading-6"> Upload pic
                                     </p>
-                                    <div uk-form-custom>
+                                    <div>
                                         <input type="file" name="image_upload">
-                                        <!-- <a href="#" class="button soft-warning small"> Choose file</a> -->
+                                        <br>
+                                        <textarea name="caption" id="caption-id" class="button soft-warning small" placeholder="Write your caption here..."></textarea>
+                                        <br>
+                                        <button class="button bg-blue-700" type="submit">Upload</button>
                                     </div>
     
-                                    <a href="#" class="uk-text-muted mt-3 uk-link"
+                                    <!-- <a href="#" class="uk-text-muted mt-3 uk-link"
                                         uk-toggle="target: .choose-upload ;  animation: uk-animation-slide-right-small, uk-animation-slide-left-medium; queued: true">
-                                        Or Import Video </a>
+                                        Or Import Video </a> -->
+                                    </form>
                                 </div>
-    
+                                
                                 <div class="uk-flex uk-flex-column choose-upload" hidden>
                                     <div class="mx-auto flex flex-col h-24 items-center justify-center relative w-full rounded-lg">
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-12">
@@ -106,7 +110,6 @@
                                 </div>
     
                             </div>
-                            </form>
                             <div class="px-4 py-3 -mx-5 -mb-4 mt-5 border-t text-sm">
                                 Your Video size Must be Maxmium 999MB
                             </div>
