@@ -1,6 +1,3 @@
-from curses import use_default_colors
-from platform import java_ver
-import re
 from django.contrib import messages
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
@@ -8,16 +5,16 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 
-from core.models import Post, Profile
+from core.models import LikePost, Post, Profile
 
 # Home Page
 @login_required(login_url='sign-in-page') # If user is not logged in then, user will be sent to login page
 def home(request):
     user_obj = User.objects.get(username=request.user.username) # Currently logged in user_obj
     user_profile = Profile.objects.get(user=user_obj) # got the logged in user from profile using user_obj
-    user_post = Post.objects.filter(user=user_obj)
-    print('user post--->', user_post)
+    user_post = Post.objects.filter(user=user_obj).order_by('-created_at') # In Descending order by DateTime
     return render(request, 'index.html', {'user_profile': user_profile, 'user_post': user_post})
+
 
 # User profile settings page on site
 @login_required(login_url='sign-in-page')
@@ -128,6 +125,23 @@ def logout_view(request):
     return redirect('sign-in-page')
 
 @login_required(login_url="sign-in-page")
+def profile(request, pk):
+    # This will be used when someone clicks on "username" on the post, It will redirect to the profile page of that user who posted the pic
+    user_obj = User.objects.get(username=pk) # get the user using the pk
+    profile_obj = Profile.objects.get(user=user_obj) # get the user of the post from "Profile" model
+    user_posts = Post.objects.filter(user=pk) # get all the posts of the user whose id=pk
+    user_post_length = len(user_posts) # length of all the posts of the user
+
+    context = {
+        'user_obj': user_obj,
+        'profile_obj': profile_obj,
+        'user_posts': user_posts,
+        'user_post_length': user_post_length
+    }
+
+    return render(request, 'profile.html', context=context)
+
+@login_required(login_url="sign-in-page")
 def upload(request):
     # if image uploaded then post it else return directly to home page
     if request.method == "POST":
@@ -139,10 +153,36 @@ def upload(request):
         # save it to the Post model (in database)
         new_post = Post.objects.create(user=user, image=image, caption=caption)
         new_post.save()
-        print('pic uploaded')
         return redirect("/", )
     else:
-        print('pic not uploaded')
         return redirect("/")
+
+def like_post(request):
+    current_username = request.user.username # Currently logged in user
+    post_id = request.GET.get('post_id') # post_id of liked post
+
+    post_obj = Post.objects.get(id=post_id) # getting the post_obj of post_id from "Post" model
+
+    # Check whether the current logged in user already liked this post or not?
+    # If not liked then increase the no_of_likes of post else delete the like and liked_object
+    like_filter = LikePost.objects.filter(post_id=post_id, username=current_username).first()
+    print('like_filter--->', like_filter)
+
+    # If there is no "current_username" found against this "post_id" then increase the like of the post 
+    if like_filter == None:
+        print('like_filter new like')
+        new_like = LikePost.objects.create(post_id=post_id, username=current_username)
+        new_like.save()
+        post_obj.no_of_likes += 1 # increase the likes of the post in "Post" model
+        post_obj.save()
+        return redirect("/")
+    else:
+        print('like_filter already liked')
+        like_filter.delete() # delete the "like_filter" object from "LikePost" model, since user has already liked this post
+        post_obj.no_of_likes -= 1 # Decrease the likes for the post
+        post_obj.save()
+        return redirect("/")
+
+        
 
 
