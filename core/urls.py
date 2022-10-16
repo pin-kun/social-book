@@ -14,4 +14,5 @@ urlpatterns = [
     # path('settings/profile/', profile, name='settings-profile'),
     path('like-post/', like_post, name='like-post'),
     path('follow/', follow, name='follow'),
+    path('search/', search, name='search-username'),
 ]

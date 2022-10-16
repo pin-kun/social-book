@@ -1,6 +1,4 @@
 from itertools import chain
-from multiprocessing import context
-import re
 from django.contrib import messages
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
@@ -22,7 +20,6 @@ def home(request):
     following_user_feed_list = []
 
     following_user = FollowersCount.objects.filter(follower=user_obj)
-    print(following_user)
 
     for users in following_user:
         following_user_list.append(users)
@@ -33,9 +30,6 @@ def home(request):
         following_user_feed_list.append(user_feed_lists)
     
     feed_list = list(chain(*following_user_feed_list))
-    
-    print(following_user_list)
-    print(following_user_feed_list)
 
     context = {
         'user_profile': user_profile,
@@ -219,18 +213,15 @@ def like_post(request):
     # Check whether the current logged in user already liked this post or not?
     # If not liked then increase the no_of_likes of post else delete the like and liked_object
     like_filter = LikePost.objects.filter(post_id=post_id, username=current_username).first()
-    print('like_filter--->', like_filter)
 
     # If there is no "current_username" found against this "post_id" then increase the like of the post 
     if like_filter == None:
-        print('like_filter new like')
         new_like = LikePost.objects.create(post_id=post_id, username=current_username)
         new_like.save()
         post_obj.no_of_likes += 1 # increase the likes of the post in "Post" model
         post_obj.save()
         return redirect("/")
     else:
-        print('like_filter already liked')
         like_filter.delete() # delete the "like_filter" object from "LikePost" model, since user has already liked this post
         post_obj.no_of_likes -= 1 # Decrease the likes for the post
         post_obj.save()
@@ -256,4 +247,30 @@ def follow(request):
     else:
         return redirect("/")
 
+@login_required(login_url='sign-in-page')
+def search(request):
+    if request.method == "POST":
+        user_obj = User.objects.get(username=request.user.username) # Currently logged in user_obj
+        user_profile = Profile.objects.get(user=user_obj) # got the logged in user from Profile Model using user_obj
 
+        searched_username = request.POST['search_username']
+        username_obj = User.objects.filter(username__icontains=searched_username)
+
+        username_profile = []
+        username_profile_list = []
+        
+        for users in username_obj:
+            username_profile.append(users.id) # here we are appending the "id", you can do without "id" too
+        
+        for ids in username_profile:
+            profile_lists = Profile.objects.filter(id_user=ids)
+            username_profile_list.append(profile_lists)
+
+        username_profile_list = list(chain(*username_profile_list))
+
+        context = {
+            'searched_username': searched_username,
+            'user_profile': user_profile,
+            'username_profile_list': username_profile_list
+        }
+    return render(request, 'search.html', context=context)
