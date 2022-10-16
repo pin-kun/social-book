@@ -1,6 +1,6 @@
 from unicodedata import name
 from django.urls import path
-from core.views import home, settings, signup, signin, logout_view, upload, like_post, profile
+from core.views import *
 
 urlpatterns = [
     path('', home, name="home-page"),
@@ -11,5 +11,7 @@ urlpatterns = [
 
     path('upload/', upload, name='upload'),
     path('profile/<str:pk>/', profile, name='profile'),
+    # path('settings/profile/', profile, name='settings-profile'),
     path('like-post/', like_post, name='like-post'),
+    path('follow/', follow, name='follow'),
 ]

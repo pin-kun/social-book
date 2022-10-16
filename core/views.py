@@ -1,3 +1,6 @@
+from itertools import chain
+from multiprocessing import context
+import re
 from django.contrib import messages
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
@@ -5,15 +8,41 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 
-from core.models import LikePost, Post, Profile
+from core.models import FollowersCount, LikePost, Post, Profile
 
 # Home Page
 @login_required(login_url='sign-in-page') # If user is not logged in then, user will be sent to login page
 def home(request):
     user_obj = User.objects.get(username=request.user.username) # Currently logged in user_obj
-    user_profile = Profile.objects.get(user=user_obj) # got the logged in user from profile using user_obj
-    user_post = Post.objects.filter(user=user_obj).order_by('-created_at') # In Descending order by DateTime
-    return render(request, 'index.html', {'user_profile': user_profile, 'user_post': user_post})
+    user_profile = Profile.objects.get(user=user_obj) # got the logged in user from Profile Model using user_obj
+    user_post = Post.objects.filter(user=user_obj).order_by('-created_at') # ALl the posts of currently logged in user, In Descending order by DateTime
+
+    # get the following user(s) of currently logged in user
+    following_user_list = []
+    following_user_feed_list = []
+
+    following_user = FollowersCount.objects.filter(follower=user_obj)
+    print(following_user)
+
+    for users in following_user:
+        following_user_list.append(users)
+    
+    
+    for usernames in following_user_list:
+        user_feed_lists =  Post.objects.filter(user=usernames)
+        following_user_feed_list.append(user_feed_lists)
+    
+    feed_list = list(chain(*following_user_feed_list))
+    
+    print(following_user_list)
+    print(following_user_feed_list)
+
+    context = {
+        'user_profile': user_profile,
+        'user_post': feed_list,
+        'following_user_post': ''
+    }
+    return render(request, 'index.html', context=context)
 
 
 # User profile settings page on site
@@ -132,11 +161,34 @@ def profile(request, pk):
     user_posts = Post.objects.filter(user=pk) # get all the posts of the user whose id=pk
     user_post_length = len(user_posts) # length of all the posts of the user
 
+    # Here pk = user whose profile is opened on the page
+    logged_in_follower = request.user.username # user who is logged in and following
+    profile_user = pk # user, whose profile is being viewed currently
+
+    # if logged in user is following user then show "Following" else show "Unfollow"
+    if FollowersCount.objects.filter(follower=logged_in_follower, user=profile_user).first():
+        follow_button_text = "Unfollow"
+    else:
+        follow_button_text = "Follow"
+    
+    # get the length of the "user" from "FollowersCount" table where user=pk (currently opened profile page)
+    # It means "no. of times, the user of the currently opened profile page is shown in 'user' list in 'FollowersCount' table"
+    # That many time current profile_page user has been followed by the "other users"
+    user_followers = len(FollowersCount.objects.filter(user=pk))
+
+    # get the length of the "follower" from "FollowersCount" table where user=pk (currently opened profile page)
+    # It means "no. of times, the user of the currently opened profile page is shown in 'follower' list in 'FollowersCount' table"
+    # That many time current profile_page user has been following the "other users"
+    user_following = len(FollowersCount.objects.filter(follower=pk))         
+
     context = {
-        'user_obj': user_obj,
+        'user_obj': user_obj,        
         'profile_obj': profile_obj,
         'user_posts': user_posts,
-        'user_post_length': user_post_length
+        'user_post_length': user_post_length,
+        'follow_button_text': follow_button_text,
+        'user_followers': user_followers,
+        'user_following': user_following
     }
 
     return render(request, 'profile.html', context=context)
@@ -156,7 +208,8 @@ def upload(request):
         return redirect("/", )
     else:
         return redirect("/")
-
+                                                                                                                 
+@login_required(login_url='sign-in-page')
 def like_post(request):
     current_username = request.user.username # Currently logged in user
     post_id = request.GET.get('post_id') # post_id of liked post
@@ -183,6 +236,24 @@ def like_post(request):
         post_obj.save()
         return redirect("/")
 
-        
+@login_required(login_url='sign-in-page')
+def follow(request):
+    if request.method == "POST":
+        follower = request.POST['follower'] # currently logged in user
+        user = request.POST['user'] # user, whose profile is being viewed by currently logged in user
+
+        is_already_followed = FollowersCount.objects.filter(follower=follower, user=user).first()
+
+        if is_already_followed:
+            delete_follower = FollowersCount.objects.get(follower=follower, user=user)
+            delete_follower.delete() # basically unfollow
+            return redirect('/profile/'+user)
+        else:
+            new_follower = FollowersCount.objects.create(follower=follower, user=user)
+            new_follower.save()
+            return redirect("/profile/"+user)
+
+    else:
+        return redirect("/")
 
 
