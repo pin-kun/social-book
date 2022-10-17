@@ -7,6 +7,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 
 from core.models import FollowersCount, LikePost, Post, Profile
+import random
 
 # Home Page
 @login_required(login_url='sign-in-page') # If user is not logged in then, user will be sent to login page
@@ -18,23 +19,56 @@ def home(request):
     # get the following user(s) of currently logged in user
     following_user_list = []
     following_user_feed_list = []
+    following_user_usernames = []
 
-    following_user = FollowersCount.objects.filter(follower=user_obj)
+    following_user = FollowersCount.objects.filter(follower=user_obj) # list of all the users whome currently logged in user is already following
+    # print(following_user)
 
     for users in following_user:
         following_user_list.append(users)
+        following_user_usernames.append(users.user)
     
     
     for usernames in following_user_list:
         user_feed_lists =  Post.objects.filter(user=usernames)
-        following_user_feed_list.append(user_feed_lists)
+        following_user_feed_list.append(user_feed_lists)    
     
     feed_list = list(chain(*following_user_feed_list))
+
+    # print('fedd list-->', len(following_user_list))
+
+    # for suggestions to follow other accounts
+    all_users = User.objects.all() # all the users on the plateform
+    user_following_all = [] # list of all the users whome currently logged in user is already following
+
+    for user in following_user:
+        user_list = User.objects.get(username=user.user)
+        user_following_all.append(user_list)
+
+    # removing the common user(s) and filtering out only those users who are not followed by currently logged in user
+    # we can't recommend ourself to ourself. so we are not removing ourself from suggestion list
+    new_suggestion_list = [x for x in list(all_users) if (x not in list(user_following_all))] 
+    currently_user = User.objects.filter(username=request.user.username) 
+    final_suggestion_list =  [x for x in list(new_suggestion_list) if (x not in list())]
+    random.shuffle(final_suggestion_list)
+
+    username_profile = []
+    username_profile_list = []
+    
+    for users in final_suggestion_list:
+        username_profile.append(users.id)
+
+    for ids in username_profile:
+        profile_lists = Profile.objects.filter(id_user=ids)
+        username_profile_list.append(profile_lists)
+    
+    suggestion_username_profile_list = list(chain(*username_profile_list))
 
     context = {
         'user_profile': user_profile,
         'user_post': feed_list,
-        'following_user_post': ''
+        'following_user_post': '',
+        'suggestion_username_profile_list': suggestion_username_profile_list[:4] # only first 4 suggestions from the list
     }
     return render(request, 'index.html', context=context)
 
@@ -267,6 +301,7 @@ def search(request):
             username_profile_list.append(profile_lists)
 
         username_profile_list = list(chain(*username_profile_list))
+        print('test---->>', username_profile_list)
 
         context = {
             'searched_username': searched_username,
